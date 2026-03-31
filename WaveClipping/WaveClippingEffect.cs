@@ -10,7 +10,7 @@ namespace WaveClipping
 {
     [PluginDetails(AuthorName = "routersys", ContentId = "nc470267")]
 
-    [VideoEffect(nameof(Texts.WaveClipping), [nameof(Texts.CategoryComposition)], [nameof(Texts.TagWave), nameof(Texts.TagClipping), nameof(Texts.TagWaveKatakana)], IsAviUtlSupported = false)]
+    [VideoEffect(nameof(Texts.WaveClipping), [VideoEffectCategories.Composition], [nameof(Texts.TagWave), nameof(Texts.TagClipping), nameof(Texts.TagWaveKatakana)], IsAviUtlSupported = false, ResourceType = typeof(Texts))]
     public sealed class WaveClippingEffect : VideoEffectBase
     {
         public override string Label => Texts.WaveClipping;
