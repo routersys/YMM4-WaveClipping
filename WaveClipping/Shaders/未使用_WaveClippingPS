@@ -1,0 +1,106 @@
+Texture2D InputTexture : register(t0);
+SamplerState InputSampler : register(s0);
+
+cbuffer Constants : register(b0)
+{
+    float inputLeft;
+    float inputTop;
+    float inputWidth;
+    float inputHeight;
+    float amplitude;
+    float frequency;
+    float phase;
+    float edgePosition;
+    float bandWidth;
+    float softness;
+    float mode;
+    float isInverted;
+};
+
+float4 main(float4 pos : SV_POSITION, float4 posScene : SCENE_POSITION, float4 uv : TEXCOORD0) : SV_TARGET
+{
+    float4 color = InputTexture.Sample(InputSampler, uv.xy);
+
+    float safeWidth = max(inputWidth, 1e-6f);
+    float safeHeight = max(inputHeight, 1e-6f);
+
+    float nx = (posScene.x - inputLeft) / safeWidth;
+    float ny = (posScene.y - inputTop) / safeHeight;
+
+    float dNxDx = ddx(nx);
+    float dNxDy = ddy(nx);
+    float dNyDx = ddx(ny);
+    float dNyDy = ddy(ny);
+
+    static const float2 subOffsets[16] =
+    {
+        float2(0.125f, 0.375f),
+        float2(-0.125f, -0.375f),
+        float2(0.375f, -0.125f),
+        float2(-0.375f, 0.125f),
+        float2(0.0625f, 0.1875f),
+        float2(-0.0625f, -0.1875f),
+        float2(0.1875f, -0.0625f),
+        float2(-0.1875f, 0.0625f),
+        float2(0.4375f, 0.4375f),
+        float2(-0.4375f, -0.4375f),
+        float2(0.4375f, -0.4375f),
+        float2(-0.4375f, 0.4375f),
+        float2(0.25f, 0.25f),
+        float2(-0.25f, -0.25f),
+        float2(0.25f, -0.25f),
+        float2(-0.25f, 0.25f)
+    };
+
+    float maskAccum = 0.0f;
+    float k = frequency * 6.28318530718f;
+
+    [unroll]
+    for (int i = 0; i < 16; i++)
+    {
+        float snx = nx + subOffsets[i].x * dNxDx + subOffsets[i].y * dNxDy;
+        float sny = ny + subOffsets[i].x * dNyDx + subOffsets[i].y * dNyDy;
+
+        float phase_term = snx * k + phase;
+        float sw = amplitude * sin(phase_term);
+        float dsw_dx = amplitude * k * cos(phase_term);
+
+        float grad_x = dNyDx - dsw_dx * dNxDx;
+        float grad_y = dNyDy - dsw_dx * dNxDy;
+        float grad_len = max(length(float2(grad_x, grad_y)), 1e-7f);
+
+        float aaEps = grad_len * 0.70710678118f;
+        float userEps = max(softness, aaEps);
+
+        float e1Val = sny - (edgePosition + sw);
+        float e2Val = sny - (edgePosition + bandWidth + sw);
+
+        float mask1 = smoothstep(-userEps, userEps, e1Val);
+        float mask2 = smoothstep(-userEps, userEps, e2Val);
+
+        float subMask;
+
+        if (mode < 0.5f)
+        {
+            subMask = 1.0f - mask1;
+        }
+        else if (mode < 1.5f)
+        {
+            subMask = mask1 * (1.0f - mask2);
+        }
+        else
+        {
+            subMask = 1.0f - mask1 * (1.0f - mask2);
+        }
+
+        subMask = lerp(subMask, 1.0f - subMask, isInverted);
+        maskAccum += subMask;
+    }
+
+    float mask = maskAccum * 0.0625f;
+
+    color.a *= mask;
+    color.rgb *= mask;
+
+    return color;
+}

@@ -3,10 +3,13 @@ using YukkuriMovieMaker.Commons;
 using YukkuriMovieMaker.Controls;
 using YukkuriMovieMaker.Exo;
 using YukkuriMovieMaker.Player.Video;
+using YukkuriMovieMaker.Plugin;
 using YukkuriMovieMaker.Plugin.Effects;
 
 namespace WaveClipping
 {
+    [PluginDetails(AuthorName = "routersys", ContentId = "nc470267")]
+
     [VideoEffect(nameof(Texts.WaveClipping), [nameof(Texts.CategoryComposition)], [nameof(Texts.TagWave), nameof(Texts.TagClipping), nameof(Texts.TagWaveKatakana)], IsAviUtlSupported = false)]
     public sealed class WaveClippingEffect : VideoEffectBase
     {
